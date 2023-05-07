@@ -5,6 +5,7 @@ import winreg
 import sys
 import json
 import requests
+import time
 ##########################                变量初始化
 login_url = 'http://222.197.192.59:9090/zportal/login/do'    #校园网认证地址
 app_path = sys.argv[0]  #获取当前文件地址
@@ -73,21 +74,44 @@ else:
 
 
 #认证请求体
-params = {
-'qrCodeId': '请输入编号',
-'username': username,
-'pwd': password,
-'validCode': '验证码',
-'validCodeFlag': 'false',
-'serviceId': '00b5544a36f9483b968a1b62c4263195',
-'ssid': 'bfd0fd2d574e31c6ba728e0a908cdb8f',
-'mac': 'a58d9095f45c5a441d27fcdb25878076',
-'t': 'wireless-v2',
-'wlanacname': 'c8c9622958c8e70501e9284a0abec0fc',
-# 'url': '00934593e7571f42045dd99e38fa63e2c6f27e15e5c9af77',
-'nasip': 'cbde5ddbb5eb03be513e83acf881fb36',
-'wlanuserip': '0248bc8e89ffc645550f89422242acca'
-}
+def param(username,password):
+    params ={
+    'qrCodeId': '请输入编号',
+    'username': username,
+    'pwd': password,
+    'validCode': '验证码',
+    'validCodeFlag': 'false',
+    'serviceId': '00b5544a36f9483b968a1b62c4263195',
+    'ssid': 'bfd0fd2d574e31c6ba728e0a908cdb8f',
+    'mac': 'a58d9095f45c5a441d27fcdb25878076',
+    't': 'wireless-v2',
+    'wlanacname': 'c8c9622958c8e70501e9284a0abec0fc',
+    # 'url': '00934593e7571f42045dd99e38fa63e2c6f27e15e5c9af77',
+    'nasip': 'cbde5ddbb5eb03be513e83acf881fb36',
+    'wlanuserip': '0248bc8e89ffc645550f89422242acca'
+    }
+    print(params)
+    return params
+##############################################################
+#登录结果提示窗口
+def reflect(info):
+    class Frame(wx.Frame):
+        def __init__(self):
+            wx.Frame.__init__(self, None, title='登录结果', size=(300, 170),name='frame',style=541072960)
+            self.qdck = wx.Panel(self)
+            self.Centre()
+            self.bq1 = wx.StaticText(self.qdck,size=(200, 70),pos=(40, 31),label=info,name='staticText',style=2304)
+
+    class myApp(wx.App):
+        def  OnInit(self):
+            self.frame = Frame()
+            self.frame.Show(True)
+            return True
+
+    if __name__ == '__main__':
+        app = myApp()
+        app.MainLoop()
+
 
 
 
@@ -140,12 +164,36 @@ class Frame(wx.Frame):
         print(name,password,'登录')
         config_dict["username"] = name
         config_dict["password"] = password
-        with open(xyw_json,'w') as f:
-            json.dump(config_dict,f,ensure_ascii=False)
-        print("文件地址：",xyw_json)
-        resp = requests.post(url=login_url, params=params)
-        print(resp)
-
+        try:
+            resp = requests.post(url=login_url, params=param(username,password))
+            re = resp.json()
+            print(re)
+            if re['result'] == 'success':
+                print('登录成功！')
+                info = '登录成功！'
+            elif re['result'] == 'online':
+                print('已经在线！')
+                info = '已经在线！'
+            elif re['result'] == 'fail':
+                print('登录失败')
+                if re['message'] == 'Authentication failed!':
+                    info = '验证失败！'
+                else:
+                    info = '登录失败！'
+            else:
+                print('其他错误')
+                info = '其他错误!'
+        except:
+            print('不对，有问题！')
+            info = '不对，有问题！'
+        else:
+            with open(xyw_json,'w') as f:
+                json.dump(config_dict,f,ensure_ascii=False)
+            print("文件地址：",xyw_json)
+            if info == '登录成功！':
+                os._exit(0)
+            else:
+                reflect(info=info)
 
         # 记住密码函数
     def remember(self,event):
